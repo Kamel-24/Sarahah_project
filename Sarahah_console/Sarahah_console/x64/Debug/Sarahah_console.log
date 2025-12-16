@@ -1,0 +1,6 @@
+﻿  Sarahah_console.cpp
+C:\Users\Dell\Desktop\Sarahah_console\Sarahah_console\Sarahah_console.cpp(9,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\Dell\Desktop\Sarahah_console\Sarahah_console\Sarahah_console.cpp(137,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Dell\Desktop\Sarahah_console\Sarahah_console\Sarahah_console.cpp(150,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Dell\Desktop\Sarahah_console\Sarahah_console\Sarahah_console.cpp(177,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  Sarahah_console.vcxproj -> C:\Users\Dell\Desktop\Sarahah_console\x64\Debug\Sarahah_console.exe
