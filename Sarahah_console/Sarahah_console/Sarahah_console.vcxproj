@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{816aad07-785b-45f4-8c0c-d87da202dfd3}</ProjectGuid>
-    <RootNamespace>finalfinalfinalsarahah</RootNamespace>
+    <ProjectGuid>{f1826a79-02cd-451d-8267-ea4ad0fe1c75}</ProjectGuid>
+    <RootNamespace>Sarahahconsole</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="finalfinalfinalsarahah.cpp" />
+    <ClCompile Include="Sarahah_console.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="finalfinalfinalsarahah.cpp">
+    <ClCompile Include="Sarahah_console.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

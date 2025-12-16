@@ -6,9 +6,10 @@
 #include <algorithm>
 #include <ctime>
 #include <string>
-#include <limits> 
+#include <limits> 
 using namespace std;
-// ================= Message Class =================
+
+
 class Message {
 public:
     int senderID;
@@ -20,21 +21,24 @@ public:
     Message() : isAnonymous(false) {}
     Message(int s, int r, const string& t, bool anon = false)
         : senderID(s), receiverID(r), timestamp(time(0)), text(t), isAnonymous(anon) {}
+
     string getFormattedTime() const {
         char buffer[80];
 
-        // 1. Declare the struct tm object locally
-        struct tm lt;
 
-        // 2. Use localtime_s instead of localtime
-        // Note: localtime_s signature is different: 
-        // errno_t localtime_s(struct tm* _Tm, const time_t* _Time)
+        struct tm lt;
+#ifdef _WIN32
         if (localtime_s(&lt, &timestamp) != 0) {
-            // Error handling, though unlikely to fail here
             return "Time Error";
         }
+#else
+        struct tm* temp_lt = localtime(&timestamp);
+        if (temp_lt == nullptr) {
+            return "Time Error";
+        }
+        lt = *temp_lt;
+#endif
 
-        // 3. Pass the address of your local struct tm object to strftime
         strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &lt);
         return string(buffer);
     }
@@ -57,9 +61,10 @@ public:
     User(int uid, const string& uname, const string& pass)
         : id(uid), username(uname), password(pass) {}
 
-    void addContact(const string & uname,int uid) {
+    void addContact(const string& uname, int uid) {
         contacts[uname] = uid;
     }
+
     bool isContactID(int uid) {
         for (const auto& pair : contacts) {
             if (pair.second == uid) {
@@ -68,6 +73,7 @@ public:
         }
         return false;
     }
+
     void sendMessage(User& reciver, const string& text, bool isAnon) {
         Message m(id, reciver.id, text, isAnon);
         sent.push_back(m);
@@ -76,14 +82,16 @@ public:
 
     void undoLastMessage(User& reciver) {
         if (sent.empty()) {
-            cout << "you haven't sent any messages";
+            cout << "you haven't sent any messages\n";
             return;
         }
         Message m = sent.back();
         sent.pop_back();
 
         auto& rec = reciver.received;
-        rec.erase(remove_if(rec.begin(), rec.end(), [&](Message msg) {
+
+        rec.erase(remove_if(rec.begin(), rec.end(), [&](const Message& msg) {
+
             return msg.timestamp == m.timestamp && msg.text == m.text;
             }),
             rec.end());
@@ -99,6 +107,7 @@ public:
             cout << "No received messages.\n";
         }
     }
+
     void removeOldestFavorite() {
         if (!favorites.empty()) {
             favorites.pop_front();
@@ -135,49 +144,56 @@ public:
     void viewReceivedFrom(int senderID, const unordered_map<int, User>& users) {
         bool found = false;
 
-        for (const auto& m : received) {
+        cout << "--- Messages from " << users.at(senderID).username << " ---\n";
+
+
+        for (int i = received.size() - 1; i >= 0; --i) {
+            const Message& m = received[i];
+
             if (m.senderID == senderID) {
 
-                
                 if (m.isAnonymous) {
                     continue;
                 }
 
                 cout << "[" << m.getFormattedTime() << "] ";
-
                 cout << users.at(senderID).username << ": " << m.text << "\n";
-
                 found = true;
             }
         }
-        if (!found) cout << "No defined messages found from this contact.\n";
+        if (!found) cout << "No defined (non-anonymous) messages found from this contact.\n";
     }
-
-
 
     void viewAllReceived(const unordered_map<int, User>& users) {
         if (received.empty()) { cout << "No received messages.\n"; return; }
         cout << "Received Messages (latest first):\n";
 
-        unordered_map<int, bool> is_contact_map;
+
+        unordered_map<int, string> contact_names;
         for (const auto& pair : contacts) {
-            
-            int id = pair.second;
-            is_contact_map[id] = true;
+            contact_names[pair.second] = pair.first;
         }
 
         for (int i = received.size() - 1; i >= 0; --i) {
             const Message& m = received[i];
             cout << "[" << m.getFormattedTime() << "] ";
 
-            bool isContact = is_contact_map.count(m.senderID);
+            bool isContact = contact_names.count(m.senderID);
+            string sender_display;
 
-            if (m.isAnonymous || !isContact) {
-                cout << "Sender ID " << m.senderID << (m.isAnonymous ? " (Anonymous)" : "") << ": " << m.text << "\n";
+            if (m.isAnonymous) {
+                sender_display = "Anonymous";
+            }
+            else if (isContact) {
+
+                sender_display = users.at(m.senderID).username;
             }
             else {
-                cout << users.at(m.senderID).username << ": " << m.text << "\n";
+
+                sender_display = "Sender ID " + to_string(m.senderID);
             }
+
+            cout << sender_display << ": " << m.text << "\n";
         }
     }
 
@@ -187,14 +203,18 @@ public:
             cout << "No favorite messages.\n";
             return;
         }
-        cout << "Favorite Messages:\n";
-        for (auto& m : favorites) {
-            cout << m.text << " (From ID: " << m.senderID << ", Anonymous: " << (m.isAnonymous ? "Yes" : "No") << ")\n";
+        cout << "Favorite Messages (Oldest first):\n";
+        for (const auto& m : favorites) {
+            cout << m.text << " (From ID: " << m.senderID << ", Anonymous: " << (m.isAnonymous ? "Yes" : "No") << ", Time: " << m.getFormattedTime() << ")\n";
         }
     }
-    //  File Handling -->>save and loadfiles
+
+
     void loadFiles() {
         string folder = "data";
+
+
+        contacts.clear();
         ifstream fcontacts(folder + "/user_" + to_string(id) + "_contacts.txt");
         if (fcontacts.is_open()) {
             string uname; int uid;
@@ -202,12 +222,19 @@ public:
                 contacts[uname] = uid;
             fcontacts.close();
         }
+
+
+        sent.clear();
         ifstream fsent(folder + "/user_" + to_string(id) + "_sent.txt");
         if (fsent.is_open()) {
             int s, r, anon_int; time_t t; string line;
             while (fsent >> s >> r >> t >> anon_int) {
-                getline(fsent, line);
-                getline(fsent, line);
+
+                fsent.ignore(numeric_limits<streamsize>::max(), '\n');
+
+
+                if (!getline(fsent, line)) break;
+
                 Message msg(s, r, line);
                 msg.timestamp = t;
                 msg.isAnonymous = (anon_int == 1);
@@ -215,12 +242,19 @@ public:
             }
             fsent.close();
         }
+
+
+        received.clear();
         ifstream frec(folder + "/user_" + to_string(id) + "_received.txt");
         if (frec.is_open()) {
             int s, r, anon_int; time_t t; string line;
             while (frec >> s >> r >> t >> anon_int) {
-                getline(frec, line);
-                getline(frec, line);
+
+                frec.ignore(numeric_limits<streamsize>::max(), '\n');
+
+
+                if (!getline(frec, line)) break;
+
                 Message msg(s, r, line);
                 msg.timestamp = t;
                 msg.isAnonymous = (anon_int == 1);
@@ -228,12 +262,19 @@ public:
             }
             frec.close();
         }
+
+
+        favorites.clear();
         ifstream ffav(folder + "/user_" + to_string(id) + "_fav.txt");
         if (ffav.is_open()) {
             int s, r, anon_int; time_t t; string line;
             while (ffav >> s >> r >> t >> anon_int) {
-                getline(ffav, line);
-                getline(ffav, line);
+
+                ffav.ignore(numeric_limits<streamsize>::max(), '\n');
+
+
+                if (!getline(ffav, line)) break;
+
                 Message msg(s, r, line);
                 msg.timestamp = t;
                 msg.isAnonymous = (anon_int == 1);
@@ -245,20 +286,25 @@ public:
 
     void saveFiles() {
         string folder = "data";
+
+
         ofstream fcontacts(folder + "/user_" + to_string(id) + "_contacts.txt");
         for (auto& c : contacts)
             fcontacts << c.first << " " << c.second << "\n";
         fcontacts.close();
+
 
         ofstream fsent(folder + "/user_" + to_string(id) + "_sent.txt");
         for (auto& m : sent)
             fsent << m.senderID << " " << m.receiverID << " " << m.timestamp << " " << (m.isAnonymous ? 1 : 0) << "\n" << m.text << "\n";
         fsent.close();
 
+
         ofstream frec(folder + "/user_" + to_string(id) + "_received.txt");
         for (auto& m : received)
             frec << m.senderID << " " << m.receiverID << " " << m.timestamp << " " << (m.isAnonymous ? 1 : 0) << "\n" << m.text << "\n";
         frec.close();
+
 
         ofstream ffav(folder + "/user_" + to_string(id) + "_fav.txt");
         for (auto& m : favorites)
@@ -267,6 +313,7 @@ public:
     }
 
 };
+
 class App {
 private:
     unordered_map<int, User> users;
@@ -330,10 +377,14 @@ public:
     }
 
     void run() {
+
+
         while (true) {
             cout << "\n===== Modified Saraha (Anonymous Enabled) =====\n";
             cout << "1- Register\n2- Login\n3- Exit\nChoose: ";
             int ch;
+
+
             if (!(cin >> ch)) {
                 cin.clear();
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -341,7 +392,10 @@ public:
                 continue;
             }
 
-            if (ch == 3) { cout << "Goodbye!\n"; break; }
+            if (ch == 3) {
+                cout << "Goodbye!\n";
+                break;
+            }
 
             if (ch == 1) registerUser();
             else if (ch == 2) {
@@ -351,8 +405,9 @@ public:
                 while (true) {
                     cout << "\n--- User Menu (" << me->username << ") ---\n";
                     cout << "1 Add Contact\n2 Send Message\n3 Undo Last\n4 View Contacts\n";
-                    cout << "5 View Sent\n6 View Received From Contact (Only Known Messages)\n"; // ?? ????? ????
+                    cout << "5 View Sent\n6 View Received From Contact (Only Known Messages)\n";
                     cout << "7 Add Favorite\n8 Remove Oldest Favorite\n9 View Favorites\n10 View All Received\n0 Logout\nChoose: ";
+
 
                     if (!(cin >> ch)) {
                         cin.clear();
@@ -385,6 +440,8 @@ public:
 
                         cout << "Send as (1) Known / (2) Unknown? [1/2]: ";
                         int anon_choice;
+
+
                         if (!(cin >> anon_choice)) {
                             cin.clear();
                             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -393,12 +450,18 @@ public:
                         }
                         bool isAnonymous = (anon_choice == 2);
 
+
+                        users[rid].loadFiles();
+
                         string msg;
                         cin.ignore(numeric_limits<streamsize>::max(), '\n');
                         cout << "Enter message: "; getline(cin, msg);
 
                         me->sendMessage(users[rid], msg, isAnonymous);
                         cout << "Message sent" << (isAnonymous ? " (Anonymously)" : "") << ".\n";
+
+
+                        users[rid].saveFiles();
                     }
                     else if (ch == 3) {
                         string rname;
@@ -406,7 +469,13 @@ public:
                         cout << "Enter receiver username to undo last: "; getline(cin, rname);
                         if (!usernameToID.count(rname)) { cout << "User not found!\n"; continue; }
                         int rid = usernameToID[rname];
+
+                        users[rid].loadFiles();
+
                         me->undoLastMessage(users[rid]);
+
+
+                        users[rid].saveFiles();
                     }
                     else if (ch == 4) me->viewContacts();
                     else if (ch == 5) me->viewSent();
@@ -444,7 +513,7 @@ public:
     }
 };
 
-// ================= Main =================
+
 int main() {
     App app;
     app.run();
