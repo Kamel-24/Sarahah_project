@@ -1,0 +1,6 @@
+﻿  after fixing file.cpp
+C:\Users\Dell\Desktop\after fixing file\after fixing file\after fixing file.cpp(9,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\Dell\Desktop\after fixing file\after fixing file\after fixing file.cpp(137,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Dell\Desktop\after fixing file\after fixing file\after fixing file.cpp(150,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Dell\Desktop\after fixing file\after fixing file\after fixing file.cpp(177,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  after fixing file.vcxproj -> C:\Users\Dell\Desktop\after fixing file\x64\Debug\after fixing file.exe
